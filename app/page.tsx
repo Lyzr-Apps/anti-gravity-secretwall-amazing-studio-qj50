@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef, useCallback } from 'react'
 import { callAIAgent } from '@/lib/aiAgent'
-import { RiGhostLine, RiShieldKeyholeLine, RiFireLine, RiHeart3Fill, RiHeart3Line, RiChat3Line, RiFlagLine, RiSendPlane2Fill, RiRefreshLine, RiTrophyLine, RiBarChartBoxLine, RiUserLine, RiEyeOffLine, RiShieldCheckLine, RiSparklingLine, RiMegaphoneLine, RiTimeLine, RiCloseLine, RiCheckLine, RiAlertLine, RiThumbUpLine, RiThumbUpFill } from 'react-icons/ri'
+import { RiGhostLine, RiShieldKeyholeLine, RiFireLine, RiHeart3Fill, RiHeart3Line, RiChat3Line, RiFlagLine, RiSendPlane2Fill, RiRefreshLine, RiTrophyLine, RiBarChartBoxLine, RiUserLine, RiEyeOffLine, RiShieldCheckLine, RiSparklingLine, RiMegaphoneLine, RiTimeLine, RiCloseLine, RiCheckLine, RiAlertLine, RiThumbUpLine, RiThumbUpFill, RiLockLine, RiIdCardLine, RiLoginCircleLine, RiUserAddLine, RiArrowRightLine, RiLogoutBoxRLine } from 'react-icons/ri'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -34,9 +34,15 @@ interface ModerationResult {
   confidence: number
 }
 
+interface AuthUser {
+  universityId: string
+  studentName: string
+}
+
 // ─── Constants ───────────────────────────────────────────────────────────────
 
 const AGENT_ID = '69995dd80ab3a50ca24853e5'
+const AUTH_STORAGE_KEY = 'secretwall_auth'
 
 const CATEGORIES = ['Crush', 'Academic', 'Rant', 'Funny', 'Secret', 'Advice'] as const
 
@@ -297,9 +303,349 @@ function StatCard({ icon, label, value }: { icon: React.ReactNode; label: string
   )
 }
 
+// ─── Login / Signup Screen ──────────────────────────────────────────────────
+
+function AuthScreen({ onAuth }: { onAuth: (user: AuthUser) => void }) {
+  const [mode, setMode] = useState<'login' | 'signup'>('login')
+  const [universityId, setUniversityId] = useState('')
+  const [studentName, setStudentName] = useState('')
+  const [password, setPassword] = useState('')
+  const [error, setError] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [success, setSuccess] = useState('')
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setError('')
+    setSuccess('')
+
+    if (!universityId.trim()) {
+      setError('University ID is required.')
+      return
+    }
+
+    if (mode === 'signup' && !studentName.trim()) {
+      setError('Full name is required for signup.')
+      return
+    }
+
+    if (!password.trim() || password.length < 4) {
+      setError('Password must be at least 4 characters.')
+      return
+    }
+
+    setLoading(true)
+
+    try {
+      if (mode === 'signup') {
+        // Validate against CSV
+        const res = await fetch('/api/students', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'validate',
+            universityId: universityId.trim(),
+            studentName: studentName.trim(),
+            password: password,
+          }),
+        })
+        const data = await res.json()
+
+        if (!data.success) {
+          setError(data.error || 'Validation failed.')
+          setLoading(false)
+          return
+        }
+
+        // Store credentials in localStorage
+        const stored = JSON.parse(localStorage.getItem(AUTH_STORAGE_KEY + '_users') || '{}')
+        const idKey = universityId.trim().toUpperCase()
+        if (stored[idKey]) {
+          setError('This University ID is already registered. Please log in instead.')
+          setLoading(false)
+          return
+        }
+
+        stored[idKey] = {
+          universityId: data.student.universityId,
+          studentName: data.student.studentName,
+          password: password,
+        }
+        localStorage.setItem(AUTH_STORAGE_KEY + '_users', JSON.stringify(stored))
+
+        setSuccess('Account created successfully! Redirecting...')
+        setTimeout(() => {
+          const user: AuthUser = {
+            universityId: data.student.universityId,
+            studentName: data.student.studentName,
+          }
+          localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(user))
+          onAuth(user)
+        }, 1200)
+      } else {
+        // Login — verify against CSV that ID exists, then check local password
+        const res = await fetch('/api/students', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'login',
+            universityId: universityId.trim(),
+          }),
+        })
+        const data = await res.json()
+
+        if (!data.success) {
+          setError(data.error || 'University ID not found.')
+          setLoading(false)
+          return
+        }
+
+        // Check local stored password
+        const stored = JSON.parse(localStorage.getItem(AUTH_STORAGE_KEY + '_users') || '{}')
+        const idKey = universityId.trim().toUpperCase()
+        const userRecord = stored[idKey]
+
+        if (!userRecord) {
+          setError('No account found for this ID. Please sign up first.')
+          setLoading(false)
+          return
+        }
+
+        if (userRecord.password !== password) {
+          setError('Incorrect password. Please try again.')
+          setLoading(false)
+          return
+        }
+
+        setSuccess('Login successful! Redirecting...')
+        setTimeout(() => {
+          const user: AuthUser = {
+            universityId: data.student.universityId,
+            studentName: data.student.studentName,
+          }
+          localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(user))
+          onAuth(user)
+        }, 800)
+      }
+    } catch {
+      setError('Network error. Please check your connection and try again.')
+    }
+
+    setLoading(false)
+  }
+
+  return (
+    <div className="min-h-screen bg-[#0a0a0f] text-white relative overflow-hidden sw-dot-grid flex items-center justify-center p-4">
+      {/* Floating gradient orbs */}
+      <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
+        <div className="absolute -top-32 -left-32 w-96 h-96 rounded-full bg-purple-600/10 blur-[120px] sw-orb-drift" />
+        <div className="absolute top-1/2 -right-32 w-80 h-80 rounded-full bg-cyan-600/10 blur-[100px] sw-orb-drift" style={{ animationDelay: '-7s' }} />
+        <div className="absolute -bottom-32 left-1/3 w-72 h-72 rounded-full bg-pink-600/8 blur-[100px] sw-orb-drift" style={{ animationDelay: '-14s' }} />
+      </div>
+
+      <div className="relative z-10 w-full max-w-md sw-slide-up">
+        {/* Logo & Title */}
+        <div className="text-center mb-8">
+          <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-purple-500 to-cyan-500 flex items-center justify-center mx-auto mb-4 sw-pulse-glow shadow-2xl shadow-purple-500/30">
+            <RiShieldKeyholeLine className="w-8 h-8 text-white" />
+          </div>
+          <h1 className="text-3xl font-bold sw-gradient-text mb-2">Secret Wall</h1>
+          <p className="text-sm text-[#a78bfa]">University-exclusive anonymous platform</p>
+        </div>
+
+        {/* Auth Card */}
+        <div className="sw-glass-strong rounded-2xl p-6 sw-neon-hover">
+          {/* Tab Switcher */}
+          <div className="flex rounded-xl bg-white/5 p-1 mb-6">
+            <button
+              onClick={() => { setMode('login'); setError(''); setSuccess(''); }}
+              className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-medium transition-all duration-300 ${mode === 'login' ? 'bg-purple-600/40 text-white shadow-lg shadow-purple-500/10' : 'text-[#a78bfa] hover:text-white'}`}
+            >
+              <RiLoginCircleLine className="w-4 h-4" />
+              Log In
+            </button>
+            <button
+              onClick={() => { setMode('signup'); setError(''); setSuccess(''); }}
+              className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-medium transition-all duration-300 ${mode === 'signup' ? 'bg-purple-600/40 text-white shadow-lg shadow-purple-500/10' : 'text-[#a78bfa] hover:text-white'}`}
+            >
+              <RiUserAddLine className="w-4 h-4" />
+              Sign Up
+            </button>
+          </div>
+
+          <form onSubmit={handleSubmit} className="space-y-4">
+            {/* University ID */}
+            <div>
+              <label className="flex items-center gap-1.5 text-xs font-medium text-[#c4b5fd] mb-1.5">
+                <RiIdCardLine className="w-3.5 h-3.5" />
+                University ID
+              </label>
+              <div className="sw-gradient-border rounded-xl">
+                <input
+                  type="text"
+                  value={universityId}
+                  onChange={(e) => setUniversityId(e.target.value.toUpperCase())}
+                  placeholder="e.g. N25H01A0001"
+                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder-[#a78bfa]/40 focus:outline-none focus:border-purple-500/50 transition-colors font-mono tracking-wide"
+                  autoComplete="off"
+                />
+              </div>
+            </div>
+
+            {/* Full Name (signup only) */}
+            {mode === 'signup' && (
+              <div className="sw-slide-up">
+                <label className="flex items-center gap-1.5 text-xs font-medium text-[#c4b5fd] mb-1.5">
+                  <RiUserLine className="w-3.5 h-3.5" />
+                  Full Name (as per university records)
+                </label>
+                <div className="sw-gradient-border rounded-xl">
+                  <input
+                    type="text"
+                    value={studentName}
+                    onChange={(e) => setStudentName(e.target.value)}
+                    placeholder="Enter your registered full name"
+                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder-[#a78bfa]/40 focus:outline-none focus:border-purple-500/50 transition-colors"
+                    autoComplete="off"
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* Password */}
+            <div>
+              <label className="flex items-center gap-1.5 text-xs font-medium text-[#c4b5fd] mb-1.5">
+                <RiLockLine className="w-3.5 h-3.5" />
+                Password
+              </label>
+              <div className="sw-gradient-border rounded-xl">
+                <input
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder={mode === 'signup' ? 'Create a password (min 4 chars)' : 'Enter your password'}
+                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder-[#a78bfa]/40 focus:outline-none focus:border-purple-500/50 transition-colors"
+                  autoComplete="off"
+                />
+              </div>
+            </div>
+
+            {/* Error Message */}
+            {error && (
+              <div className="sw-slide-up flex items-start gap-2 p-3 rounded-xl border border-red-500/30 bg-red-500/10">
+                <RiAlertLine className="w-4 h-4 text-red-400 flex-shrink-0 mt-0.5" />
+                <p className="text-xs text-red-300">{error}</p>
+              </div>
+            )}
+
+            {/* Success Message */}
+            {success && (
+              <div className="sw-slide-up flex items-start gap-2 p-3 rounded-xl border border-emerald-500/30 bg-emerald-500/10">
+                <RiCheckLine className="w-4 h-4 text-emerald-400 flex-shrink-0 mt-0.5" />
+                <p className="text-xs text-emerald-300">{success}</p>
+              </div>
+            )}
+
+            {/* Submit Button */}
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full py-3 rounded-xl text-sm font-semibold transition-all duration-300 disabled:opacity-40 disabled:cursor-not-allowed bg-gradient-to-r from-purple-600 to-cyan-600 hover:from-purple-500 hover:to-cyan-500 text-white shadow-lg shadow-purple-500/20 hover:shadow-purple-500/40 flex items-center justify-center gap-2"
+            >
+              {loading ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  {mode === 'signup' ? 'Verifying...' : 'Logging in...'}
+                </>
+              ) : (
+                <>
+                  <RiArrowRightLine className="w-4 h-4" />
+                  {mode === 'signup' ? 'Create Account' : 'Log In'}
+                </>
+              )}
+            </button>
+          </form>
+
+          {/* Footer note */}
+          <div className="mt-5 pt-4 border-t border-white/5">
+            <div className="flex items-start gap-2">
+              <RiEyeOffLine className="w-4 h-4 text-purple-400 flex-shrink-0 mt-0.5" />
+              <p className="text-[11px] text-[#a78bfa]/70 leading-relaxed">
+                {mode === 'signup'
+                  ? 'Your identity is verified against university records but never revealed on the platform. All posts and chats remain anonymous.'
+                  : 'Your real identity is never shown. You will be assigned a random anonymous alias on the platform.'}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Verified Badge */}
+        <div className="mt-4 flex items-center justify-center gap-2 text-[10px] text-[#a78bfa]/50">
+          <RiShieldCheckLine className="w-3.5 h-3.5" />
+          <span>Verified university students only</span>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ─── Main Page ───────────────────────────────────────────────────────────────
 
 export default function Page() {
+  // Auth state
+  const [authUser, setAuthUser] = useState<AuthUser | null>(null)
+  const [authChecked, setAuthChecked] = useState(false)
+
+  // Check for existing auth on mount
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem(AUTH_STORAGE_KEY)
+      if (stored) {
+        const parsed = JSON.parse(stored)
+        if (parsed?.universityId && parsed?.studentName) {
+          setAuthUser(parsed)
+        }
+      }
+    } catch {
+      // Invalid stored data, ignore
+    }
+    setAuthChecked(true)
+  }, [])
+
+  const handleAuth = useCallback((user: AuthUser) => {
+    setAuthUser(user)
+  }, [])
+
+  const handleLogout = useCallback(() => {
+    localStorage.removeItem(AUTH_STORAGE_KEY)
+    setAuthUser(null)
+  }, [])
+
+  // Show loading while checking auth
+  if (!authChecked) {
+    return (
+      <div className="min-h-screen bg-[#0a0a0f] flex items-center justify-center">
+        <div className="w-8 h-8 border-2 border-purple-500/30 border-t-purple-500 rounded-full animate-spin" />
+      </div>
+    )
+  }
+
+  // Show auth screen if not logged in
+  if (!authUser) {
+    return (
+      <ErrorBoundary>
+        <AuthScreen onAuth={handleAuth} />
+      </ErrorBoundary>
+    )
+  }
+
+  // Authenticated — show main app
+  return <MainApp authUser={authUser} onLogout={handleLogout} />
+}
+
+// ─── Main App (Authenticated) ───────────────────────────────────────────────
+
+function MainApp({ authUser, onLogout }: { authUser: AuthUser; onLogout: () => void }) {
   // Navigation
   const [activeTab, setActiveTab] = useState<'wall' | 'chat' | 'trending' | 'profile'>('wall')
 
@@ -642,6 +988,16 @@ export default function Page() {
                 <RiEyeOffLine className="w-3.5 h-3.5 text-[#a78bfa]" />
                 <span className="text-xs text-[#c4b5fd] font-medium">{username || 'Anonymous'}</span>
               </div>
+
+              {/* Logout */}
+              <button
+                onClick={onLogout}
+                className="flex items-center gap-1 px-2 py-1 rounded-full text-[#a78bfa] hover:text-red-400 hover:bg-red-500/10 border border-transparent hover:border-red-500/20 transition-all duration-200"
+                title="Log out"
+              >
+                <RiLogoutBoxRLine className="w-3.5 h-3.5" />
+                <span className="text-[10px] hidden sm:inline">Logout</span>
+              </button>
             </div>
           </div>
 
@@ -970,6 +1326,13 @@ export default function Page() {
                   </button>
                 </div>
                 <p className="text-xs text-[#a78bfa]">Anonymous Identity</p>
+
+                {/* Verified University Badge */}
+                <div className="mt-3 flex items-center justify-center gap-2 px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 mx-auto w-fit">
+                  <RiShieldCheckLine className="w-3.5 h-3.5 text-emerald-400" />
+                  <span className="text-[11px] text-emerald-300">Verified Student</span>
+                  <span className="text-[10px] text-emerald-400/60 font-mono">{authUser.universityId}</span>
+                </div>
               </div>
 
               {/* Stats */}
