@@ -1,0 +1,16 @@
+{
+  "agent_name": "Secret Wall Content Moderator",
+  "agent_id": "69995dd80ab3a50ca24853e5",
+  "agent_type": "json",
+  "accessor": "json",
+  "has_module_outputs": false,
+  "response_schema": {
+    "is_safe": "boolean - whether the content is safe",
+    "toxicity_score": "number 0-1 - toxicity level",
+    "categories": "string[] - violation categories detected",
+    "action": "string - approve/flag/reject",
+    "reason": "string - explanation of decision",
+    "cleaned_text": "string - censored version if needed",
+    "confidence": "number 0-1 - confidence score"
+  }
+}

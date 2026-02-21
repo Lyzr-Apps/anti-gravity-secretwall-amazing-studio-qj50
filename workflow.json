@@ -1,0 +1,32 @@
+{
+  "nodes": [
+    {
+      "id": "input_node",
+      "type": "Input",
+      "label": "User Content Submission",
+      "nodeCategory": "input"
+    },
+    {
+      "id": "moderation_agent",
+      "type": "Agent",
+      "label": "Content Moderation Agent",
+      "nodeCategory": "agent"
+    },
+    {
+      "id": "output_node",
+      "type": "Output",
+      "label": "Moderation Result",
+      "nodeCategory": "end"
+    }
+  ],
+  "edges": [
+    {
+      "source": "input_node",
+      "target": "moderation_agent"
+    },
+    {
+      "source": "moderation_agent",
+      "target": "output_node"
+    }
+  ]
+}

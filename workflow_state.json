@@ -1,0 +1,22 @@
+{
+  "agents": [
+    {
+      "agent_id": "69995dd80ab3a50ca24853e5",
+      "agent_name": "Secret Wall Content Moderator",
+      "node_id": "moderation_agent",
+      "model": "openai/gpt-4o-mini",
+      "provider_id": "openai",
+      "temperature": 0.2,
+      "top_p": 0.9,
+      "agent_type": "json",
+      "capabilities": {
+        "image_output": false,
+        "voice": false,
+        "file_output": false,
+        "knowledge_base": false
+      }
+    }
+  ],
+  "workflow_created": true,
+  "created_at": "2026-02-21"
+}

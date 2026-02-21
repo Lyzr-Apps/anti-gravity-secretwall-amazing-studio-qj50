@@ -73,3 +73,232 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* Secret Wall — Custom Animations & Effects */
+
+@keyframes sw-float {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-6px);
+  }
+}
+
+@keyframes sw-float-delayed {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
+}
+
+@keyframes sw-pulse-glow {
+  0%, 100% {
+    box-shadow: 0 0 5px rgba(168, 85, 247, 0.3), 0 0 10px rgba(168, 85, 247, 0.1);
+  }
+  50% {
+    box-shadow: 0 0 15px rgba(168, 85, 247, 0.5), 0 0 30px rgba(168, 85, 247, 0.2);
+  }
+}
+
+@keyframes sw-badge-pulse {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.15);
+    opacity: 0.8;
+  }
+}
+
+@keyframes sw-gradient-shift {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+@keyframes sw-like-bounce {
+  0% {
+    transform: scale(1);
+  }
+  30% {
+    transform: scale(1.35);
+  }
+  60% {
+    transform: scale(0.9);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+@keyframes sw-slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes sw-typing-dot {
+  0%, 60%, 100% {
+    opacity: 0.3;
+    transform: translateY(0);
+  }
+  30% {
+    opacity: 1;
+    transform: translateY(-4px);
+  }
+}
+
+@keyframes sw-orb-drift {
+  0%, 100% {
+    transform: translate(0, 0) scale(1);
+  }
+  33% {
+    transform: translate(30px, -20px) scale(1.05);
+  }
+  66% {
+    transform: translate(-20px, 15px) scale(0.95);
+  }
+}
+
+@keyframes sw-bar-grow {
+  from {
+    width: 0%;
+  }
+  to {
+    width: var(--bar-width);
+  }
+}
+
+.sw-float {
+  animation: sw-float 4s ease-in-out infinite;
+}
+
+.sw-float-delayed {
+  animation: sw-float-delayed 5s ease-in-out infinite;
+}
+
+.sw-pulse-glow {
+  animation: sw-pulse-glow 3s ease-in-out infinite;
+}
+
+.sw-badge-pulse {
+  animation: sw-badge-pulse 2s ease-in-out infinite;
+}
+
+.sw-like-bounce {
+  animation: sw-like-bounce 0.4s ease-out;
+}
+
+.sw-slide-up {
+  animation: sw-slide-up 0.5s ease-out forwards;
+}
+
+.sw-orb-drift {
+  animation: sw-orb-drift 20s ease-in-out infinite;
+}
+
+.sw-bar-grow {
+  animation: sw-bar-grow 1s ease-out forwards;
+}
+
+/* Glassmorphism */
+.sw-glass {
+  background: rgba(139, 92, 246, 0.08);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(139, 92, 246, 0.2);
+}
+
+.sw-glass-strong {
+  background: rgba(139, 92, 246, 0.12);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid rgba(139, 92, 246, 0.25);
+}
+
+/* Neon glow hover */
+.sw-neon-hover {
+  transition: all 0.3s ease;
+}
+.sw-neon-hover:hover {
+  box-shadow: 0 0 15px rgba(168, 85, 247, 0.4), 0 0 30px rgba(168, 85, 247, 0.15), 0 4px 20px rgba(0, 0, 0, 0.3);
+}
+
+/* Custom scrollbar */
+.sw-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+.sw-scrollbar::-webkit-scrollbar-track {
+  background: rgba(139, 92, 246, 0.05);
+  border-radius: 3px;
+}
+.sw-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(139, 92, 246, 0.3);
+  border-radius: 3px;
+}
+.sw-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(139, 92, 246, 0.5);
+}
+
+/* Dot grid background */
+.sw-dot-grid {
+  background-image: radial-gradient(rgba(139, 92, 246, 0.12) 1px, transparent 1px);
+  background-size: 32px 32px;
+}
+
+/* Gradient text */
+.sw-gradient-text {
+  background: linear-gradient(135deg, #a855f7, #06b6d4);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Typing indicator dots */
+.sw-typing-dot:nth-child(1) {
+  animation: sw-typing-dot 1.4s ease-in-out infinite;
+}
+.sw-typing-dot:nth-child(2) {
+  animation: sw-typing-dot 1.4s ease-in-out 0.2s infinite;
+}
+.sw-typing-dot:nth-child(3) {
+  animation: sw-typing-dot 1.4s ease-in-out 0.4s infinite;
+}
+
+/* Gradient border effect */
+.sw-gradient-border {
+  position: relative;
+}
+.sw-gradient-border::before {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(135deg, rgba(168, 85, 247, 0.5), rgba(6, 182, 212, 0.5));
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+.sw-gradient-border:focus-within::before,
+.sw-gradient-border:hover::before {
+  opacity: 1;
+}
