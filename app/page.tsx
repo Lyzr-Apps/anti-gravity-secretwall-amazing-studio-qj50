@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef, useCallback } from 'react'
 import { callAIAgent } from '@/lib/aiAgent'
-import { RiGhostLine, RiShieldKeyholeLine, RiFireLine, RiHeart3Fill, RiHeart3Line, RiChat3Line, RiFlagLine, RiSendPlane2Fill, RiRefreshLine, RiTrophyLine, RiBarChartBoxLine, RiUserLine, RiEyeOffLine, RiShieldCheckLine, RiSparklingLine, RiMegaphoneLine, RiTimeLine, RiCloseLine, RiCheckLine, RiAlertLine, RiThumbUpLine, RiThumbUpFill, RiLockLine, RiIdCardLine, RiLoginCircleLine, RiUserAddLine, RiArrowRightLine, RiLogoutBoxRLine } from 'react-icons/ri'
+import { RiGhostLine, RiShieldKeyholeLine, RiFireLine, RiHeart3Fill, RiHeart3Line, RiChat3Line, RiFlagLine, RiSendPlane2Fill, RiRefreshLine, RiTrophyLine, RiBarChartBoxLine, RiUserLine, RiEyeOffLine, RiShieldCheckLine, RiSparklingLine, RiMegaphoneLine, RiTimeLine, RiCloseLine, RiCheckLine, RiAlertLine, RiThumbUpLine, RiThumbUpFill, RiLockLine, RiIdCardLine, RiLoginCircleLine, RiUserAddLine, RiArrowRightLine, RiLogoutBoxRLine, RiImageLine, RiVideoLine, RiPlayCircleLine, RiAttachmentLine, RiArrowDownSLine, RiArrowUpSLine, RiDeleteBinLine } from 'react-icons/ri'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -14,6 +14,8 @@ interface Confession {
   comments: number
   timestamp: number
   username: string
+  mediaUrl?: string
+  mediaType?: 'image' | 'video'
 }
 
 interface ChatMessage {
@@ -32,6 +34,15 @@ interface ModerationResult {
   reason: string
   cleaned_text: string
   confidence: number
+}
+
+interface Comment {
+  id: string
+  confessionId: string
+  username: string
+  text: string
+  timestamp: number
+  likes: number
 }
 
 interface AuthUser {
@@ -87,11 +98,11 @@ function getAvatarColor(name: string): string {
 
 const INITIAL_CONFESSIONS: Confession[] = [
   { id: '1', text: 'I still think about my freshman year roommate every day. We lost touch after sophomore year and I regret not staying connected.', category: 'Secret', likes: 47, comments: 12, timestamp: Date.now() - 3600000, username: 'Shadow_7392' },
-  { id: '2', text: 'The library 3rd floor is the best nap spot on campus. Fight me.', category: 'Funny', likes: 89, comments: 23, timestamp: Date.now() - 7200000, username: 'Ghost_1847' },
+  { id: '2', text: 'The library 3rd floor is the best nap spot on campus. Fight me.', category: 'Funny', likes: 89, comments: 23, timestamp: Date.now() - 7200000, username: 'Ghost_1847', mediaUrl: 'https://images.unsplash.com/photo-1521587760476-6c12a4b040da?w=600&h=400&fit=crop', mediaType: 'image' as const },
   { id: '3', text: 'I switched my major three times and I finally found something I love. Dont give up if youre struggling.', category: 'Advice', likes: 124, comments: 31, timestamp: Date.now() - 10800000, username: 'Phantom_5531' },
   { id: '4', text: 'To the person who returns my water bottle to the lost and found every week — you are my hero.', category: 'Crush', likes: 67, comments: 8, timestamp: Date.now() - 18000000, username: 'Specter_2249' },
   { id: '5', text: 'Professor Thompsons organic chemistry class is actually not that bad if you go to office hours. Trust me.', category: 'Academic', likes: 56, comments: 15, timestamp: Date.now() - 25200000, username: 'Wraith_8814' },
-  { id: '6', text: 'I eat cereal for dinner at least 4 times a week and Im not even ashamed anymore.', category: 'Rant', likes: 203, comments: 45, timestamp: Date.now() - 36000000, username: 'Shade_6673' },
+  { id: '6', text: 'I eat cereal for dinner at least 4 times a week and Im not even ashamed anymore.', category: 'Rant', likes: 203, comments: 45, timestamp: Date.now() - 36000000, username: 'Shade_6673', mediaUrl: 'https://images.unsplash.com/photo-1521483451569-e33803c0330c?w=600&h=400&fit=crop', mediaType: 'image' as const },
 ]
 
 const INITIAL_CHAT_MESSAGES: ChatMessage[] = [
@@ -100,6 +111,18 @@ const INITIAL_CHAT_MESSAGES: ChatMessage[] = [
   { id: 'c3', username: 'Phantom_5531', text: 'Has anyone taken CS301? Is it as hard as people say?', timestamp: Date.now() - 180000, isOwn: false },
   { id: 'c4', username: 'Specter_2249', text: 'Just found out my crush is in my study group. Universe is testing me.', timestamp: Date.now() - 120000, isOwn: false },
   { id: 'c5', username: 'Wraith_8814', text: 'The campus sunset tonight was unreal. Wish I could share a pic here.', timestamp: Date.now() - 60000, isOwn: false },
+]
+
+const INITIAL_COMMENTS: Comment[] = [
+  { id: 'cm1', confessionId: '1', username: 'Ghost_1847', text: 'Same here... freshman year hits different.', timestamp: Date.now() - 3000000, likes: 5 },
+  { id: 'cm2', confessionId: '1', username: 'Phantom_5531', text: 'Have you tried reaching out? Its never too late.', timestamp: Date.now() - 2700000, likes: 12 },
+  { id: 'cm3', confessionId: '2', username: 'Wraith_8814', text: 'Shhh dont tell everyone our secret spot!', timestamp: Date.now() - 6500000, likes: 8 },
+  { id: 'cm4', confessionId: '2', username: 'Shade_6673', text: '4th floor study rooms are underrated too', timestamp: Date.now() - 6000000, likes: 3 },
+  { id: 'cm5', confessionId: '3', username: 'Shadow_7392', text: 'What did you end up choosing? Asking for a friend...', timestamp: Date.now() - 9500000, likes: 6 },
+  { id: 'cm6', confessionId: '6', username: 'Specter_2249', text: 'Lucky Charms or Frosted Flakes?', timestamp: Date.now() - 34000000, likes: 15 },
+  { id: 'cm7', confessionId: '6', username: 'Cipher_3301', text: 'This is the most relatable post on here', timestamp: Date.now() - 33000000, likes: 22 },
+  { id: 'cm8', confessionId: '4', username: 'Nimbus_4420', text: 'Plot twist: its the janitor', timestamp: Date.now() - 16000000, likes: 34 },
+  { id: 'cm9', confessionId: '5', username: 'Mist_7765', text: 'Office hours are the cheat code nobody uses', timestamp: Date.now() - 23000000, likes: 9 },
 ]
 
 // ─── ErrorBoundary ───────────────────────────────────────────────────────────
@@ -217,6 +240,10 @@ function ConfessionCard({
   onReport,
   animateLikeId,
   showHotBadge,
+  commentsData,
+  onAddComment,
+  onToggleCommentLike,
+  currentUsername,
 }: {
   confession: Confession
   isLiked: boolean
@@ -224,8 +251,33 @@ function ConfessionCard({
   onReport: () => void
   animateLikeId: string | null
   showHotBadge?: boolean
+  commentsData?: Comment[]
+  onAddComment?: (confessionId: string, text: string) => void
+  onToggleCommentLike?: (commentId: string) => void
+  currentUsername?: string
 }) {
+  const [showComments, setShowComments] = useState(false)
+  const [commentText, setCommentText] = useState('')
+  const [likedComments, setLikedComments] = useState<Set<string>>(new Set())
   const catClass = CATEGORY_COLORS[confession.category] ?? 'bg-gray-500/20 text-gray-300 border-gray-500/30'
+  const comments = Array.isArray(commentsData) ? commentsData : []
+  const commentCount = confession.comments + comments.length
+
+  const handleSubmitComment = () => {
+    if (!commentText.trim() || !onAddComment) return
+    onAddComment(confession.id, commentText.trim())
+    setCommentText('')
+  }
+
+  const handleCommentLike = (commentId: string) => {
+    setLikedComments(prev => {
+      const next = new Set(prev)
+      if (next.has(commentId)) next.delete(commentId)
+      else next.add(commentId)
+      return next
+    })
+    if (onToggleCommentLike) onToggleCommentLike(commentId)
+  }
 
   return (
     <div className="sw-glass sw-neon-hover rounded-xl p-4 transition-all duration-300">
@@ -245,12 +297,42 @@ function ConfessionCard({
                 HOT
               </span>
             )}
+            {confession.mediaType && (
+              <span className="flex items-center gap-0.5 px-1.5 py-0.5 text-[10px] rounded-full bg-cyan-500/15 text-cyan-300 border border-cyan-500/25">
+                {confession.mediaType === 'image' ? <RiImageLine className="w-3 h-3" /> : <RiVideoLine className="w-3 h-3" />}
+                {confession.mediaType === 'image' ? 'Photo' : 'Video'}
+              </span>
+            )}
             <span className="text-[10px] text-[#a78bfa]/60 ml-auto flex items-center gap-1">
               <RiTimeLine className="w-3 h-3" />
               {getRelativeTime(confession.timestamp)}
             </span>
           </div>
           <p className="text-sm text-white/90 leading-relaxed mb-3">{confession.text}</p>
+
+          {/* Media Display */}
+          {confession.mediaUrl && confession.mediaType === 'image' && (
+            <div className="mb-3 rounded-xl overflow-hidden border border-white/10">
+              <img
+                src={confession.mediaUrl}
+                alt="Confession media"
+                className="w-full max-h-80 object-cover"
+                loading="lazy"
+              />
+            </div>
+          )}
+          {confession.mediaUrl && confession.mediaType === 'video' && (
+            <div className="mb-3 rounded-xl overflow-hidden border border-white/10">
+              <video
+                src={confession.mediaUrl}
+                controls
+                className="w-full max-h-80"
+                preload="metadata"
+              />
+            </div>
+          )}
+
+          {/* Action Bar */}
           <div className="flex items-center gap-4">
             <button
               onClick={onLike}
@@ -265,10 +347,14 @@ function ConfessionCard({
               </span>
               <span className={isLiked ? 'text-pink-400' : 'text-[#a78bfa] group-hover:text-pink-400'}>{confession.likes}</span>
             </button>
-            <span className="flex items-center gap-1.5 text-xs text-[#a78bfa]">
-              <RiChat3Line className="w-4 h-4" />
-              {confession.comments}
-            </span>
+            <button
+              onClick={() => setShowComments(!showComments)}
+              className={`flex items-center gap-1.5 text-xs transition-all duration-200 group ${showComments ? 'text-cyan-400' : 'text-[#a78bfa]'}`}
+            >
+              <RiChat3Line className={`w-4 h-4 ${showComments ? 'text-cyan-400' : 'group-hover:text-cyan-400 transition-colors'}`} />
+              <span>{commentCount > 0 ? commentCount : confession.comments}</span>
+              {showComments ? <RiArrowUpSLine className="w-3 h-3" /> : <RiArrowDownSLine className="w-3 h-3" />}
+            </button>
             <button
               onClick={onReport}
               className="flex items-center gap-1 text-xs text-[#a78bfa] hover:text-red-400 transition-colors ml-auto"
@@ -277,6 +363,70 @@ function ConfessionCard({
               <span className="hidden sm:inline">Report</span>
             </button>
           </div>
+
+          {/* Comments Section */}
+          {showComments && (
+            <div className="mt-3 pt-3 border-t border-white/5 sw-slide-up">
+              {/* Existing Comments */}
+              {comments.length > 0 && (
+                <div className="space-y-2.5 mb-3 max-h-60 overflow-y-auto sw-scrollbar pr-1">
+                  {comments.map(comment => (
+                    <div key={comment.id} className="flex items-start gap-2">
+                      <div className={`w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 ${getAvatarColor(comment.username)}`}>
+                        <RiGhostLine className="w-3 h-3 text-white" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-0.5">
+                          <span className="text-[11px] font-medium text-[#c4b5fd]">{comment.username}</span>
+                          <span className="text-[9px] text-[#a78bfa]/40">{getRelativeTime(comment.timestamp)}</span>
+                        </div>
+                        <p className="text-xs text-white/80 leading-relaxed">{comment.text}</p>
+                        <button
+                          onClick={() => handleCommentLike(comment.id)}
+                          className="flex items-center gap-1 mt-1 text-[10px] text-[#a78bfa]/60 hover:text-pink-400 transition-colors"
+                        >
+                          {likedComments.has(comment.id) ? (
+                            <RiHeart3Fill className="w-3 h-3 text-pink-400" />
+                          ) : (
+                            <RiHeart3Line className="w-3 h-3" />
+                          )}
+                          {comment.likes + (likedComments.has(comment.id) ? 1 : 0)}
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {comments.length === 0 && (
+                <p className="text-[11px] text-[#a78bfa]/40 mb-3 text-center">No comments yet. Be the first!</p>
+              )}
+
+              {/* Add Comment Input */}
+              <div className="flex gap-2">
+                <div className={`w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 ${getAvatarColor(currentUsername || 'anon')}`}>
+                  <RiGhostLine className="w-3 h-3 text-white" />
+                </div>
+                <div className="flex-1 flex gap-1.5">
+                  <input
+                    value={commentText}
+                    onChange={(e) => setCommentText(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === 'Enter') handleSubmitComment() }}
+                    placeholder="Write a comment..."
+                    maxLength={200}
+                    className="flex-1 bg-white/5 border border-white/10 rounded-lg px-3 py-1.5 text-xs text-white placeholder-[#a78bfa]/30 focus:outline-none focus:border-purple-500/40 transition-colors"
+                  />
+                  <button
+                    onClick={handleSubmitComment}
+                    disabled={!commentText.trim()}
+                    className="px-2.5 rounded-lg bg-purple-600/30 text-purple-300 disabled:opacity-30 disabled:cursor-not-allowed hover:bg-purple-600/50 transition-colors"
+                  >
+                    <RiSendPlane2Fill className="w-3 h-3" />
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>
@@ -683,6 +833,17 @@ function MainApp({ authUser, onLogout }: { authUser: AuthUser; onLogout: () => v
   // Sample data toggle
   const [showSampleData, setShowSampleData] = useState(true)
 
+  // Media upload state
+  const [mediaPreview, setMediaPreview] = useState<string | null>(null)
+  const [mediaType, setMediaType] = useState<'image' | 'video' | null>(null)
+  const [mediaFileName, setMediaFileName] = useState<string>('')
+  const mediaInputRef = useRef<HTMLInputElement>(null)
+  const videoInputRef = useRef<HTMLInputElement>(null)
+
+  // Comments state
+  const [allComments, setAllComments] = useState<Comment[]>(INITIAL_COMMENTS)
+  const commentIdCounter = useRef(200)
+
   const chatEndRef = useRef<HTMLDivElement>(null)
   const confessionIdCounter = useRef(100)
 
@@ -710,7 +871,9 @@ function MainApp({ authUser, onLogout }: { authUser: AuthUser; onLogout: () => v
   // ─── Handlers ────────────────────────────────────────────────────────────
 
   const handlePost = useCallback(async () => {
-    if (!newConfession.trim() || isPosting) return
+    if ((!newConfession.trim() && !mediaPreview) || isPosting) return
+
+    const textToModerate = newConfession.trim() || (mediaPreview ? 'User shared a media post' : '')
 
     setIsPosting(true)
     setModerationResult(null)
@@ -718,7 +881,7 @@ function MainApp({ authUser, onLogout }: { authUser: AuthUser; onLogout: () => v
     setActiveAgentId(AGENT_ID)
 
     try {
-      const result = await callAIAgent(newConfession.trim(), AGENT_ID)
+      const result = await callAIAgent(textToModerate, AGENT_ID)
       setActiveAgentId(null)
 
       if (result.success) {
@@ -744,10 +907,13 @@ function MainApp({ authUser, onLogout }: { authUser: AuthUser; onLogout: () => v
             comments: 0,
             timestamp: Date.now(),
             username: username,
+            mediaUrl: mediaPreview || undefined,
+            mediaType: mediaType || undefined,
           }
           setConfessions(prev => [newPost, ...prev])
           setMyPostCount(prev => prev + 1)
           setNewConfession('')
+          clearMedia()
           setModerationStatus('Content approved and posted!')
         } else if (modResult.action === 'flag') {
           const newId = String(confessionIdCounter.current++)
@@ -759,10 +925,13 @@ function MainApp({ authUser, onLogout }: { authUser: AuthUser; onLogout: () => v
             comments: 0,
             timestamp: Date.now(),
             username: username,
+            mediaUrl: mediaPreview || undefined,
+            mediaType: mediaType || undefined,
           }
           setConfessions(prev => [newPost, ...prev])
           setMyPostCount(prev => prev + 1)
           setNewConfession('')
+          clearMedia()
           setModerationStatus('Content flagged but posted with warnings.')
         } else {
           setModerationStatus('Content rejected. Please revise your post.')
@@ -776,7 +945,7 @@ function MainApp({ authUser, onLogout }: { authUser: AuthUser; onLogout: () => v
     }
 
     setIsPosting(false)
-  }, [newConfession, isPosting, selectedCategory, username])
+  }, [newConfession, isPosting, selectedCategory, username, mediaPreview, mediaType, clearMedia])
 
   const handleLike = useCallback((id: string) => {
     setAnimateLikeId(id)
@@ -920,6 +1089,55 @@ function MainApp({ authUser, onLogout }: { authUser: AuthUser; onLogout: () => v
     setUsername(generateAlias())
   }, [])
 
+  const handleMediaSelect = useCallback((e: React.ChangeEvent<HTMLInputElement>, type: 'image' | 'video') => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    // Validate file size (10MB max)
+    if (file.size > 10 * 1024 * 1024) {
+      setModerationStatus('File too large. Maximum size is 10MB.')
+      return
+    }
+
+    const reader = new FileReader()
+    reader.onload = (event) => {
+      setMediaPreview(event.target?.result as string)
+      setMediaType(type)
+      setMediaFileName(file.name)
+    }
+    reader.readAsDataURL(file)
+    // Reset input so same file can be re-selected
+    e.target.value = ''
+  }, [])
+
+  const clearMedia = useCallback(() => {
+    setMediaPreview(null)
+    setMediaType(null)
+    setMediaFileName('')
+  }, [])
+
+  const handleAddComment = useCallback((confessionId: string, text: string) => {
+    const newComment: Comment = {
+      id: `cm-${commentIdCounter.current++}`,
+      confessionId,
+      username: username,
+      text,
+      timestamp: Date.now(),
+      likes: 0,
+    }
+    setAllComments(prev => [...prev, newComment])
+  }, [username])
+
+  const handleToggleCommentLike = useCallback((commentId: string) => {
+    setAllComments(prev => prev.map(c =>
+      c.id === commentId ? { ...c, likes: c.likes } : c
+    ))
+  }, [])
+
+  const getCommentsForConfession = useCallback((confessionId: string) => {
+    return allComments.filter(c => c.confessionId === confessionId)
+  }, [allComments])
+
   // ─── Derived Data ───────────────────────────────────────────────────────
 
   const displayConfessions = showSampleData ? confessions : confessions.filter(c => c.username === username)
@@ -1040,6 +1258,62 @@ function MainApp({ authUser, onLogout }: { authUser: AuthUser; onLogout: () => v
                   className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder-[#a78bfa]/50 focus:outline-none focus:border-purple-500/50 resize-none transition-colors"
                 />
 
+                {/* Media Preview */}
+                {mediaPreview && (
+                  <div className="mt-3 relative">
+                    <div className="rounded-xl overflow-hidden border border-white/10 relative">
+                      {mediaType === 'image' ? (
+                        <img src={mediaPreview} alt="Preview" className="w-full max-h-48 object-cover" />
+                      ) : (
+                        <video src={mediaPreview} className="w-full max-h-48" controls preload="metadata" />
+                      )}
+                      <button
+                        onClick={clearMedia}
+                        className="absolute top-2 right-2 w-7 h-7 rounded-full bg-black/60 flex items-center justify-center text-white hover:bg-red-500/80 transition-colors"
+                      >
+                        <RiCloseLine className="w-4 h-4" />
+                      </button>
+                    </div>
+                    <div className="flex items-center gap-1.5 mt-1.5 text-[10px] text-[#a78bfa]/60">
+                      {mediaType === 'image' ? <RiImageLine className="w-3 h-3" /> : <RiVideoLine className="w-3 h-3" />}
+                      {mediaFileName}
+                    </div>
+                  </div>
+                )}
+
+                {/* Media Upload Buttons */}
+                <div className="flex items-center gap-2 mt-3">
+                  <input
+                    ref={mediaInputRef}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(e) => handleMediaSelect(e, 'image')}
+                  />
+                  <input
+                    ref={videoInputRef}
+                    type="file"
+                    accept="video/*"
+                    className="hidden"
+                    onChange={(e) => handleMediaSelect(e, 'video')}
+                  />
+                  <button
+                    onClick={() => mediaInputRef.current?.click()}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 text-[11px] rounded-lg border transition-all duration-200 ${mediaType === 'image' ? 'border-cyan-500/40 bg-cyan-500/15 text-cyan-300' : 'border-white/10 text-[#a78bfa]/70 hover:border-purple-500/30 hover:text-[#a78bfa]'}`}
+                  >
+                    <RiImageLine className="w-3.5 h-3.5" />
+                    Image
+                  </button>
+                  <button
+                    onClick={() => videoInputRef.current?.click()}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 text-[11px] rounded-lg border transition-all duration-200 ${mediaType === 'video' ? 'border-cyan-500/40 bg-cyan-500/15 text-cyan-300' : 'border-white/10 text-[#a78bfa]/70 hover:border-purple-500/30 hover:text-[#a78bfa]'}`}
+                  >
+                    <RiVideoLine className="w-3.5 h-3.5" />
+                    Video
+                  </button>
+                  <span className="text-[10px] text-[#a78bfa]/40 ml-auto">Max 10MB</span>
+                </div>
+
                 <div className="flex items-center justify-between mt-3">
                   <div className="flex flex-wrap gap-1.5">
                     {CATEGORIES.map(cat => (
@@ -1059,7 +1333,7 @@ function MainApp({ authUser, onLogout }: { authUser: AuthUser; onLogout: () => v
 
                 <button
                   onClick={handlePost}
-                  disabled={!newConfession.trim() || isPosting}
+                  disabled={(!newConfession.trim() && !mediaPreview) || isPosting}
                   className="mt-3 w-full py-2.5 rounded-xl text-sm font-semibold transition-all duration-300 disabled:opacity-40 disabled:cursor-not-allowed bg-gradient-to-r from-purple-600 to-purple-500 hover:from-purple-500 hover:to-purple-400 text-white shadow-lg shadow-purple-500/20 hover:shadow-purple-500/40 flex items-center justify-center gap-2"
                 >
                   {isPosting ? (
@@ -1130,6 +1404,10 @@ function MainApp({ authUser, onLogout }: { authUser: AuthUser; onLogout: () => v
                         onLike={() => handleLike(confession.id)}
                         onReport={() => handleReport(confession)}
                         animateLikeId={animateLikeId}
+                        commentsData={getCommentsForConfession(confession.id)}
+                        onAddComment={handleAddComment}
+                        onToggleCommentLike={handleToggleCommentLike}
+                        currentUsername={username}
                       />
                       {reportLoading === confession.id && (
                         <div className="mt-1 flex items-center gap-2 text-xs text-[#a78bfa] pl-12">
@@ -1300,6 +1578,10 @@ function MainApp({ authUser, onLogout }: { authUser: AuthUser; onLogout: () => v
                       onReport={() => handleReport(confession)}
                       animateLikeId={animateLikeId}
                       showHotBadge={idx < 3}
+                      commentsData={getCommentsForConfession(confession.id)}
+                      onAddComment={handleAddComment}
+                      onToggleCommentLike={handleToggleCommentLike}
+                      currentUsername={username}
                     />
                   ))}
                 </div>
@@ -1375,6 +1657,10 @@ function MainApp({ authUser, onLogout }: { authUser: AuthUser; onLogout: () => v
                         onLike={() => handleLike(confession.id)}
                         onReport={() => handleReport(confession)}
                         animateLikeId={animateLikeId}
+                        commentsData={getCommentsForConfession(confession.id)}
+                        onAddComment={handleAddComment}
+                        onToggleCommentLike={handleToggleCommentLike}
+                        currentUsername={username}
                       />
                     ))}
                   </div>
