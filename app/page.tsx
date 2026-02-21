@@ -870,6 +870,33 @@ function MainApp({ authUser, onLogout }: { authUser: AuthUser; onLogout: () => v
 
   // ─── Handlers ────────────────────────────────────────────────────────────
 
+  const clearMedia = useCallback(() => {
+    setMediaPreview(null)
+    setMediaType(null)
+    setMediaFileName('')
+  }, [])
+
+  const handleMediaSelect = useCallback((e: React.ChangeEvent<HTMLInputElement>, type: 'image' | 'video') => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    // Validate file size (10MB max)
+    if (file.size > 10 * 1024 * 1024) {
+      setModerationStatus('File too large. Maximum size is 10MB.')
+      return
+    }
+
+    const reader = new FileReader()
+    reader.onload = (event) => {
+      setMediaPreview(event.target?.result as string)
+      setMediaType(type)
+      setMediaFileName(file.name)
+    }
+    reader.readAsDataURL(file)
+    // Reset input so same file can be re-selected
+    e.target.value = ''
+  }, [])
+
   const handlePost = useCallback(async () => {
     if ((!newConfession.trim() && !mediaPreview) || isPosting) return
 
@@ -1087,33 +1114,6 @@ function MainApp({ authUser, onLogout }: { authUser: AuthUser; onLogout: () => v
 
   const refreshUsername = useCallback(() => {
     setUsername(generateAlias())
-  }, [])
-
-  const handleMediaSelect = useCallback((e: React.ChangeEvent<HTMLInputElement>, type: 'image' | 'video') => {
-    const file = e.target.files?.[0]
-    if (!file) return
-
-    // Validate file size (10MB max)
-    if (file.size > 10 * 1024 * 1024) {
-      setModerationStatus('File too large. Maximum size is 10MB.')
-      return
-    }
-
-    const reader = new FileReader()
-    reader.onload = (event) => {
-      setMediaPreview(event.target?.result as string)
-      setMediaType(type)
-      setMediaFileName(file.name)
-    }
-    reader.readAsDataURL(file)
-    // Reset input so same file can be re-selected
-    e.target.value = ''
-  }, [])
-
-  const clearMedia = useCallback(() => {
-    setMediaPreview(null)
-    setMediaType(null)
-    setMediaFileName('')
   }, [])
 
   const handleAddComment = useCallback((confessionId: string, text: string) => {
